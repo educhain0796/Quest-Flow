@@ -1,0 +1,15 @@
+[package]
+name = "Questflow"
+version = "1.0.0"
+authors = []
+
+[addresses]
+questflow_token = "0x114442acbfdd65c36fb88ab977e76eefbf7225465f677aa2b73f68bc9350f545"
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-framework"
+
+[dev-dependencies]
