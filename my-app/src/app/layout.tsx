@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "./components/Navbar";
-import OCConnectWrapper from '@/app/components/OCConnectorWrapper';
-
+// import OCConnectWrapper from '@/app/components/OCConnectorWrapper';
+import { ReactQueryProvider } from "@/app/components/ReactQueryProvider";
+import { WalletProvider } from "@/app/components/WalletProvider";
+import { Toaster } from "@/app/components/ui/toaster";
+import { WrongNetworkAlert } from "@/app/components/WrongNetworkAlert";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -35,11 +38,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <OCConnectWrapper opts={opts} sandboxMode={true}>
-          <Navbar />
-          {children}
-        </OCConnectWrapper>
+        <WalletProvider>
+          <ReactQueryProvider>
 
+
+            {/* <OCConnectWrapper opts={opts} sandboxMode={true}> */}
+            <Navbar />
+            {children}
+            {/* </OCConnectWrapper> */}
+            <WrongNetworkAlert />
+
+            <Toaster />
+          </ReactQueryProvider>
+
+        </WalletProvider>
       </body>
     </html>
   );
