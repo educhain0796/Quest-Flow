@@ -5,11 +5,19 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import questToken from '../contractData/Quest.json'
 import { BrowserProvider, ethers } from 'ethers';
+// import { WalletSelector } from "./WalletSelector";
+import { toast } from "@/app/components/ui/use-toast";
+import { QUEST_ABI } from "@/utils/questflow";
+import { useWalletClient } from "@thalalabs/surf/hooks";
+import { useWallet } from "@aptos-labs/wallet-adapter-react"
+import { aptosClient } from "@/utils/aptosClient"
+
 
 const BountyFormPage: React.FC = () => {
     const [isPopupVisible, setIsPopupVisible] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const router = useRouter();
+    const { account, connected, disconnect, wallet } = useWallet();
 
 
     useEffect(() => {
@@ -20,21 +28,51 @@ const BountyFormPage: React.FC = () => {
         return null; // Prevent router usage until mounted
     }
 
+    const { client } = useWalletClient();
+
+    const handleMint = async () => {
+
+        if (!account || !client) {
+            return;
+        }
+
+        try {
+            const committedTransaction = await client.useABI(QUEST_ABI).transfer({
+                type_arguments: [],
+                arguments: ["0x5a5d125b5d1c3b57cc8b0901196139bff53c53d7d27dc8c27edea4190fa7f381", 100000000],
+            });
+            const executedTransaction = await aptosClient().waitForTransaction({
+                transactionHash: committedTransaction.hash,
+            });
+            // queryClient.invalidateQueries({
+            //   queryKey: ["message-content"],
+            // });
+            toast({
+                title: "Success",
+                description: `Transaction succeeded, hash: ${executedTransaction.hash}`,
+            });
+            alert('Withdraw your earned QF coins!');
+
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        const contractAddress = '0x63846e146420ff19C6b870878A189A922f2b2739'
-        const earnedEDU = 1;
-        const provider = new BrowserProvider(window.ethereum);
+        // const contractAddress = '0x63846e146420ff19C6b870878A189A922f2b2739'
+        // const earnedEDU = 1;
+        // const provider = new BrowserProvider(window.ethereum);
 
-        const signer = await provider.getSigner()
-        const movieRev = new ethers.Contract(contractAddress, questToken.abi, signer)
-        const walletAddress = await signer.getAddress();
-        // mint();
-        console.log(earnedEDU, "========inside withdraw===")
+        // const signer = await provider.getSigner()
+        // const movieRev = new ethers.Contract(contractAddress, questToken.abi, signer)
+        // const walletAddress = await signer.getAddress();
+        // // mint();
+        // console.log(earnedEDU, "========inside withdraw===")
 
-        await (await movieRev.donate(walletAddress, "0xB702203B9FD0ee85aeDB9d314C075D480d716635", ethers.parseUnits(earnedEDU.toString(), 18))).wait();
+        // await (await movieRev.donate(walletAddress, "0xB702203B9FD0ee85aeDB9d314C075D480d716635", ethers.parseUnits(earnedEDU.toString(), 18))).wait();
 
-
+        await handleMint()
 
         // Show the popup
         setIsPopupVisible(true);

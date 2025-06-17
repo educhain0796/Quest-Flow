@@ -10,6 +10,12 @@ import questAddress from "../contractData/address.json";
 import LoginButton from '@/app/components/LoginButton';
 import { useOCAuth } from '@opencampus/ocid-connect-js';
 import { WalletSelector } from "./WalletSelector";
+import { toast } from "./ui/use-toast";
+import { QUEST_ABI } from "@/utils/questflow";
+import { useWalletClient } from "@thalalabs/surf/hooks";
+import { useWallet } from "@aptos-labs/wallet-adapter-react"
+import { aptosClient } from "@/utils/aptosClient"
+
 
 declare global {
   interface Window {
@@ -25,7 +31,7 @@ const Navbar: React.FC = () => {
   //   ocAuth: { getAuthState: () => { OCId: string } };
   // };
 
- 
+
 
   // if (!authState) {
   //   return <div>Loading authentication...</div>;
@@ -40,12 +46,14 @@ const Navbar: React.FC = () => {
   // }
 
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [account, setAccount] = useState<string>("reset");
+  // const [account1, setAccount] = useState<string>("reset");
   const [balance, setBalance] = useState<string>('0 QF'); // Set initial balance to '0 MQ'
   const [showPopdown, setShowPopdown] = useState<boolean>(false); // State to handle pop-down visibility
   const router = useRouter(); // Initialize the router
   const logoRef = useRef<HTMLDivElement>(null); // Ref for logo animation
   const [quest, setQuest] = useState<ethers.Contract | undefined>(undefined);
+  const { account, connected, disconnect, wallet } = useWallet();
+
 
   useEffect(() => {
     if (typeof window.ethereum !== 'undefined') {
@@ -58,9 +66,9 @@ const Navbar: React.FC = () => {
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        // const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setIsConnected(true);
-        setAccount(accounts[0]); // Store the first account address
+        // setAccount(accounts[0]); // Store the first account address
         // Set a sample balance (You can replace this with actual balance fetching logic)
         setBalance('10 QF');
         // console.log('Connected account:', account);
@@ -72,43 +80,59 @@ const Navbar: React.FC = () => {
         console.error("User denied wallet connection or another error occurred:", error);
       }
     } else {
-      alert("MetaMask is not installed. Please install MetaMask and try again.");
+      alert("Aptos compatible wallet is not installed. Try again.");
     }
 
   };
 
+  // const handleWithdraw = async () => {
+  //   // Withdraw logic here (You can call your contract function or any other logic)
+
+
+  //   alert('Withdrawing. Transaction Processing..............');
+
+  //   const provider = new BrowserProvider(window.ethereum);
+  //   const signer = await provider.getSigner()
+  //   const questContract = new ethers.Contract(questAddress.contractAddress, questAbi.abi, signer)
+  //   setQuest(questContract);
+  //   // mint();
+  //   // console.log(balance, "========inside withdraw===")
+
+  //   await (await questContract.mint(account, ethers.parseUnits(parseInt(balance).toString(), 18))).wait();
+  //   alert('Withdraw your earned EDU coins!');
+
+  // };
+
+  const { client } = useWalletClient();
+
   const handleWithdraw = async () => {
-    // Withdraw logic here (You can call your contract function or any other logic)
 
+    if (!account || !client) {
+      return;
+    }
 
-    alert('Withdrawing. Transaction Processing..............');
+    try {
+      const committedTransaction = await client.useABI(QUEST_ABI).mint({
+        type_arguments: [],
+        arguments: [account.address.toString(), 1000000000],
+      });
+      const executedTransaction = await aptosClient().waitForTransaction({
+        transactionHash: committedTransaction.hash,
+      });
+      // queryClient.invalidateQueries({
+      //   queryKey: ["message-content"],
+      // });
+      toast({
+        title: "Success",
+        description: `Transaction succeeded, hash: ${executedTransaction.hash}`,
+      });
+      alert('Withdraw your earned QF coins!');
 
-    const provider = new BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner()
-    const questContract = new ethers.Contract(questAddress.contractAddress, questAbi.abi, signer)
-    setQuest(questContract);
-    // mint();
-    // console.log(balance, "========inside withdraw===")
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
-    await (await questContract.mint(account, ethers.parseUnits(parseInt(balance).toString(), 18))).wait();
-    alert('Withdraw your earned EDU coins!');
-
-  };
-
-  // const mint = async () => {
-  //   if (!quest) {
-  //     console.error('Quest contract is not initialized');
-  //     return;
-  //   }
-
-  //   console.log('Connected account:', account);
-  //   console.log('Connected balance:', balance);
-
-  //   console.log("================", account, balance, "=======inside minting============");
-  //   await (await quest.mint(account, ethers.parseUnits(parseInt("5").toString(), 18))).wait();
-
-  //   return;
-  // }
 
   const togglePopdown = () => {
     setShowPopdown(prev => !prev); // Toggle pop-down visibility
@@ -174,10 +198,10 @@ const Navbar: React.FC = () => {
         
         </button> */}
         <button
-          // onClick={isConnected ? undefined : connectWallet}
+          onClick={isConnected ? undefined : connectWallet}
           className="text-white bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600 transition duration-300 px-4 py-2 rounded-lg transform hover:scale-105"
         >
-          {isConnected ? `${account?.substring(0, 6)}...${account?.substring(account.length - 4)}` : <WalletSelector/>}
+          {<WalletSelector />}
         </button>
       </div>
     </nav>
